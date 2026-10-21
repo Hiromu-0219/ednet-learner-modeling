@@ -22,7 +22,7 @@
 - `data/raw/__MACOSX/` は展開時にできた macOS のメタデータで、データではない
 
 ## 監査サンプル（KT3、32人）
-- 配置：`data/audit/`（`u*.csv` 32ファイルと `manifest.json`）
+- 配置：`data/audit/KT3/`（`u*.csv` 32ファイルと `manifest.json`）。2026-10-21 に `data/audit/` 直下から移動
 - コピー元：`Desktop/learner-simulation/data/raw/phase2_sample/KT3`（2026-10-21 にコピー、SHA-256 一致を確認）
 - 抽出条件：`SHA256("learner-simulation-phase2-audit-v1:" + user_id)` の昇順で先頭32人（`manifest.json` の `selection`）
 - KT3 全体の同名ファイルと32人すべてがバイト単位で一致することを確認（2026-10-21）
