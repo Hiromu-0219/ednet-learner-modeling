@@ -23,6 +23,9 @@ CATEGORY_MAP = {
     ("enter", "l"): "lecture", ("quit", "l"): "lecture", ("play_video", "l"): "lecture", ("pause_video", "l"): "lecture",
     ("play_audio", "b"): "aux", ("pause_audio", "b"): "aux", ("erase_choice", "q"): "aux", ("undo_erase_choice", "q"): "aux",
     ("pay", "p"): None,
+    # 本番サンプルで初めて現れた組（2026-10-23、評価の結果を見る前に追加。evaluation_protocol.md の変更履歴）
+    ("refund", "p"): None, ("enroll_coupon", "c"): None,          # 支払い・クーポン（pay と同じ理由）
+    ("play_video", "-"): None, ("pause_video", "-"): None,         # item_id が -1（欠損）で、講義か判断できない
 }
 TOKENS = [f"{a}:{i}" for (a, i), c in CATEGORY_MAP.items() if c is not None]   # モデルの状態（13種類）
 TOKEN_OUTCOMES = TOKENS + ["end"]
