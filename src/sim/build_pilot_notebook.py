@@ -19,6 +19,7 @@ CLAUDE.md の「再現性：生成した系列のカテゴリ頻度・セッシ�
 
 - カテゴリ：KT4 用ノートブックの `CATEGORY_MAP`（問題・解説・講義・補助操作。pay は対象外）。予測対象には「終了」を加えた5クラス（2026-10-22 決定）
 - セッション：60分区切り。セッションの最後の行の次を「終了」とする。各学習者のデータ末尾は対象外（D4）
+- 推定（開始カテゴリと遷移）は、完了したセッションだけで行う。各学習者の最後のセッション（データ末尾で打ち切り）は使わない（D8、2026-10-22 ユーザー決定）
 - フェーズ1の前処理パイプライン（セクション5）は未確定。ここでの前処理は試作用で、本番の前処理ではない
 """)
 md("## 0. 設定とデータ")
@@ -83,10 +84,13 @@ DATA = {name: preprocess(p) for name, p in PATHS.items()}
 pd.DataFrame({name: {"行": len(d), "学習者": d["user_id"].nunique(),
                      "セッション": d.groupby(["user_id", "session_id"]).ngroups,
                      "完了したセッション": d[~d["censored_session"]].groupby(["user_id", "session_id"]).ngroups,
+                     "完了したセッションがある学習者（推定に使う）": d.loc[~d["censored_session"], "user_id"].nunique(),
+                     "推定に使う行": int((~d["censored_session"]).sum()),
                      "予測対象のある行": int(d["target"].notna().sum())} for name, d in DATA.items()})
 ''')
 md("""
 ## 2. M0・M1 の推定とセッションの生成
+- 推定に使うのは完了したセッションだけ（D8）
 - 開始：各セッションの最初のカテゴリの経験分布（M0・M1 共通）
 - M0：次のカテゴリ（終了を含む5クラス）の全体頻度。直前の状態によらない
 - M1：直前のカテゴリ（4状態）ごとの、次のカテゴリ（5クラス）の経験分布
@@ -94,8 +98,9 @@ md("""
 """)
 code('''
 def fit(d):
-    t = d.dropna(subset=["target"])
-    start = d.groupby(["user_id", "session_id"])["category"].first().value_counts(normalize=True).reindex(STATES, fill_value=0)
+    c = d[~d["censored_session"]]              # D8：推定は完了したセッションだけ
+    t = c.dropna(subset=["target"])
+    start = c.groupby(["user_id", "session_id"])["category"].first().value_counts(normalize=True).reindex(STATES, fill_value=0)
     m0 = t["target"].value_counts(normalize=True).reindex(OUTCOMES, fill_value=0)
     m1 = pd.crosstab(t["category"], t["target"], normalize="index").reindex(index=STATES, columns=OUTCOMES, fill_value=0)
     return start, m0, m1
@@ -144,10 +149,10 @@ for name, d in DATA.items():
     t = d.dropna(subset=["target"])
     real_c = real_lengths(d)
     rows.append({"データ": name, "系列": "実データ（完了したセッション）", **length_summary(real_c),
-                 "終了率（行動あたり）": t["target"].eq("end").mean()})
+                 "終了率（行動あたり）": t.loc[~t["censored_session"], "target"].eq("end").mean()})
     rows.append({"データ": name, "系列": "実データ（打ち切りを含む全セッション）", **length_summary(real_lengths(d, False)),
                  "終了率（行動あたり）": np.nan})
-    freq[(name, "real")] = d["category"].value_counts(normalize=True).reindex(STATES, fill_value=0)
+    freq[(name, "real")] = d.loc[~d["censored_session"], "category"].value_counts(normalize=True).reindex(STATES, fill_value=0)  # 完了したセッション
     for model, sess in SIMS[name].items():
         L = np.array([len(s) for s in sess])
         rows.append({"データ": name, "系列": model, **length_summary(L), "終了率（行動あたり）": len(L) / L.sum()})
@@ -185,7 +190,7 @@ for ax, name in zip(axes, DATA):
     ax.set_xticks(x, STATES)
     ax.set_title(name, loc="left", fontsize=10, color=INK)
     ax.grid(axis="x", visible=False)
-axes[0].set_ylabel("share of events")
+axes[0].set_ylabel("share of events (real: completed sessions)")
 axes[0].legend(frameon=False, fontsize=8)
 fig.suptitle("Category frequency: real vs generated", x=0.01, ha="left", fontsize=10, color=INK)
 plt.tight_layout(); plt.show()
@@ -193,7 +198,7 @@ plt.tight_layout(); plt.show()
 md("""
 ## 4. 読むときの注意
 - 学習と比較が同じデータ（in-sample）。M1 の終了率やカテゴリ頻度が実データに近いのは、推定の仕組み上ほぼ当然で、モデルの良さの証拠ではない。
-- 実データの「完了したセッション」は、各学習者の最後のセッション（データ末尾で打ち切り）を除いたもの。学習者の多くはセッションが1つだけなので、件数が少ない。
+- 実データの「完了したセッション」は、各学習者の最後のセッション（データ末尾で打ち切り）を除いたもの。推定もこれだけで行う（D8）。学習者の多くはセッションが1つだけなので、推定に使える学習者と件数が少ない。
 - M0・M1 は学習者の違いを持たない。学習者別（M2）・階層（M3）は、フェーズ1の前処理を固めてから。
 - 補助操作の多くは画面の流れでほぼ決まる遷移（play→pause など）で、M1 はそれもそのまま再現する。
 """)
