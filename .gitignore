@@ -1,0 +1,25 @@
+# EdNet 生データ（CC BY-NC 4.0、再配布しない）
+data/
+EdNet*/
+KT3/
+KT4/
+u*.csv
+*.zip
+
+# 大きな中間生成物
+interim/
+processed/
+outputs/
+*.parquet
+*.feather
+*.pkl
+*.pickle
+*.h5
+*.npz
+
+# Jupyter / Python
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+.venv*/
+.env
