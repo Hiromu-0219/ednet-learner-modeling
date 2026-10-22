@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import OUTCOMES, STATES, TOKEN_OUTCOMES, TOKEN_TO_CATEGORY, TOKENS, preprocess, split_halves
+from pipeline import AUTO_SEC, OUTCOMES, SESSION_GAP_MIN, STATES, TOKEN_OUTCOMES, TOKEN_TO_CATEGORY, TOKENS, preprocess, split_halves
 
 MIN_DP_PER_LEARNER = 20                 # D7
 ALPHA_GLOBAL = 0.5
@@ -213,10 +213,10 @@ def reproduction(fit, data, eval_users):
 
 
 # ---------------------------------------------------------------- 実行
-def run(paths, out_dir, label):
+def run(paths, out_dir, label, gap_min=SESSION_GAP_MIN, auto_sec=AUTO_SEC):
     t0 = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
-    d = preprocess(paths)
+    d = preprocess(paths, gap_min=gap_min, auto_sec=auto_sec)
     data = split_halves(d)
     train = data[data["half"].eq("train")]
     fit = fit_models(train)
@@ -225,7 +225,7 @@ def run(paths, out_dir, label):
     eligible = dp_total[dp_total >= MIN_DP_PER_LEARNER].index
     dp_test = test[test["is_dp"] & test["user_id"].isin(eligible)]
     ev_test = test[test["user_id"].isin(dp_test["user_id"].unique())]
-    flow = {"学習者（読み込み）": len(paths), "行（pay を除く）": len(d),
+    flow = {"セッション閾値(分)": gap_min, "D1 の秒数": auto_sec, "学習者（読み込み）": len(paths), "行（pay を除く）": len(d),
             "完了したセッションがある学習者": int(data["user_id"].nunique()),
             "完了したセッションの行": len(data), "前半の行": len(train),
             "決定点（完了したセッション）": int(dp_total.sum()),
@@ -251,6 +251,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--users"); ap.add_argument("--data-dir", default="data/raw/KT4")
     ap.add_argument("--audit", action="store_true"); ap.add_argument("--out", required=True)
+    ap.add_argument("--gap-min", type=float, default=SESSION_GAP_MIN)   # 感度分析（手順書8節）
+    ap.add_argument("--auto-sec", type=float, default=AUTO_SEC)
     a = ap.parse_args()
     root = Path(__file__).resolve().parents[1]
     if a.audit:
@@ -261,5 +263,5 @@ if __name__ == "__main__":
         users = json.loads(Path(a.users).read_text(encoding="utf-8"))["users"]
         paths = [Path(a.data_dir) / f"{u}.csv" for u in users]
         label = f"本番サンプル {len(users)}人"
-    flow = run(paths, Path(a.out), label)
+    flow = run(paths, Path(a.out), label, gap_min=a.gap_min, auto_sec=a.auto_sec)
     print(json.dumps(flow, ensure_ascii=False, indent=2))
