@@ -40,14 +40,59 @@
 
 ---
 
-## 第2章 関連研究（空欄）
+## 第2章 関連研究（下書き）
 
-- 2.1 大規模な学習ログのデータセット（EdNet ほか）【要記入】
-- 2.2 知識追跡（Knowledge Tracing）【要記入】
-- 2.3 学習者の行動系列のモデル化（マルコフモデル、系列モデル）【要記入】
-- 2.4 階層ベイズ・部分プーリングによる個人差の推定【要記入】
-- 2.5 教育シミュレーション・学習者シミュレーション【要記入】
-- 2.6 本研究の位置づけ【要記入】
+> この章の内容は、各文献の要旨と書誌情報（検索結果と論文の掲載ページ）だけにもとづく。本文はまだ読んでいない。そのため、各文献の説明には【要確認】を付けた。清書の前に原著を読み、説明が正しいかを確かめること。検索は数回だけで、網羅していない。【要記入：指導教員のすすめる文献を加える】
+
+### 2.1 大規模な学習ログのデータセット
+- Choi ら [1] は、TOEIC 学習アプリ Santa の行動ログを EdNet として公開した。
+  - 2年以上にわたって収集され、784,309人・131,441,538件のやりとりを含む。
+  - 問題を解く行動だけでなく、講義の視聴や購入まで記録されていて、4つの抽象度の階層（KT1〜KT4）に整理されている。【要確認：件数は AIED 版の値。arXiv の初版とは件数が少し違う】
+- Choi らは、ASSISTments や Junyi Academy などの既存のデータセットは、データ駆動のモデルの力を生かすには規模が足りないとしている［1］。【要確認】
+- 本研究は、この EdNet のうち最も細かい KT4 を用いる。
+
+### 2.2 知識追跡
+学習者のログを使う研究の中心は、学習者の知識の状態を推定し、次の問題に正解するかを予測する知識追跡である。
+- Corbett と Anderson [2] の Bayesian Knowledge Tracing（BKT）は、技能ごとに「習得したかどうか」を隠れ状態とし、推測と不注意の確率を含むモデルで習得の過程を表した。【要確認】
+- Piech ら [3] の Deep Knowledge Tracing は、再帰型ニューラルネットワークで学習者の解答の系列を表した。人手で領域の知識を符号化しなくてよいとしている。【要確認】
+- EdNet（Santa）のデータでは、Transformer にもとづく SAINT [4] と、解答時間などの時間の特徴を加えた SAINT+ [5] が提案され、正誤の予測の精度を高めた。【要確認】
+
+これらの研究が予測するのは「次の問題に正解するか」である。これに対して本研究は、「次にどの行動（問題・解説・講義・補助操作・終了）を選ぶか」を予測する。正誤（知識の状態）を行動の選択と結びつけることは、本研究の今後の課題である（7.2節）。
+
+### 2.3 学習者の行動の系列のモデル化
+学習者の行動の順序をマルコフモデルで表す研究は、MOOC のクリックのログを中心に行われてきた。
+- 動画の視聴のクリックの列を学習者ごとに一次マルコフ連鎖で表し、遷移行列にもとづいて学習者をクラスタに分けた研究がある［6］。【要確認：著者・掲載先】
+- 1つのマルコフ連鎖で全員を表すのではなく、学習者を複数のマルコフ連鎖の混合として表す方法も提案されている［7］。【要確認：著者・掲載先】
+- 2層の隠れマルコフモデルで MOOC の行動のパターンを取り出し、その特徴が学習の成果と関係することを示した研究もある［8］。【要確認：著者】
+
+これらの研究は、学習者の違いを主にクラスタや混合（いくつかのグループへの分類）として扱っている。本研究は、学習者ごとの遷移の確率を全体の傾向に向けて縮める部分プーリングで個人差を表す。さらに、その個人差が将来の行動の予測に役立つかを、学習者ごとの時系列の前半/後半の分割で評価する点が異なる。
+
+### 2.4 個人差の推定と部分プーリング
+知識追跡では、学習者ごとの違いをモデルに入れる研究が行われてきた。
+- Pardos と Heffernan [9] は、当時の BKT が学習者ごとの学習の速さや初期の知識を扱えないことを指摘した。そのうえで、学習者ごとの初期の習得確率を入れる変種と、学習者ごとの遷移確率を入れる変種を示した。【要確認】
+- Yudelson ら [10] は、学習者ごとのパラメータを入れた BKT が、未知の学習者のデータの予測も改善すると報告した。初期の知識より学習の速さを個人化するほうが効果が大きいとしている。【要確認】
+- 近年は、階層ベイズモデルで学習者の能力と技能の難しさを推定し、少ないデータでも安定した推定を得る研究もある［11］。【要確認】
+
+本研究の階層マルコフモデル（M3）は、この部分プーリングの考え方を、正誤ではなく行動の遷移に当てはめたものと位置づけられる。本研究の適応曲線では、最初の数百行動だけで個人差を当てはめると予測が悪化した（5.6節）。未知の学習者でも改善を報告した Yudelson ら [10] との違いは、考察で論じる。【要記入：本文を読んだうえで比較を書く】
+
+### 2.5 学習セッションと離脱
+- Lee ら [12] は、同じ Santa のデータで、学習セッションの離脱（セッションの途中でやめること）を Transformer にもとづくモデル DAS で予測した。【要確認】
+  - 検索結果の要約では、この研究は1時間以上の空きでセッションを区切ったとされている。論文の掲載ページでは、区切り方の記述を確かめられなかった。【要確認：本文で区切り方を確かめる。確かめられれば、本研究の60分の区切りの根拠として引用する】
+- 本研究の「終了」の予測は、セッションの離脱の予測と近い。ただし本研究は、離脱だけを予測するのではなく、ほかの行動と同じ枠組みで扱い、生成した系列のセッションの長さの再現にも使う点が異なる。
+
+### 2.6 学習者シミュレーション
+- 教育の分野では、シミュレーションした学習者（simulated learners）が、教師の訓練、学習についての仮説の検討、適応的な学習のアルゴリズムの開発、学習環境の試験などに使われてきた。
+- Käser と Alexandron [13] は、2010〜2019年の研究の系統的レビューで、次の2点を指摘した。【要確認】
+  - 多くのモデルは学習の一部の側面しか表していない。
+  - 約半数の研究は、モデルの妥当性の根拠を示していない。
+  - そのうえで、チューリングテストにならった妥当性の確かめ方を提案した。【要確認：提案の具体的な手順】
+
+### 2.7 本研究の位置づけ
+以上をふまえ、本研究の位置づけを次のようにまとめる。【要記入：文献を読んだうえで調整する】
+1. 知識追跡（2.2）が正誤を予測するのに対し、本研究は行動の選択を予測する。
+2. 行動の系列の研究（2.3）が個人差をクラスタや混合で扱うのに対し、本研究は部分プーリング（2.4）で表す。そのうえで、将来の予測と未知の学習者への適応で評価する。
+3. 画面の流れで決まる遷移を除いた「決定点」で評価し、手順を事前に固定する。
+4. 学習者シミュレーションの妥当性の問題（2.6）に対し、生成した系列を実データと比べ、再現できた点とできなかった点を示す。
 
 ---
 
@@ -277,8 +322,21 @@
 ---
 
 ## 参考文献
-- Choi, Y. et al. (2020). EdNet: A Large-Scale Hierarchical Dataset in Education. *Artificial Intelligence in Education (AIED 2020)*.【要確認：著者の全員とページなどの書誌情報を、原著で確かめて書く】
-- 【要記入】
+> 書誌情報は、検索結果と論文の掲載ページで確かめた範囲で書いた。著者の全員・ページ・掲載先がはっきりしないものには【要確認】を付けた。清書の前に、すべて原著（出版社の記録）で確かめること。書式は【要記入：学科の指定に合わせる】。
+
+1. Choi, Y. et al. (2020). EdNet: A Large-Scale Hierarchical Dataset in Education. In *Artificial Intelligence in Education (AIED 2020)*, LNCS, Springer, pp. 69–73. arXiv:1912.03072.【要確認：著者の全員（10人）】
+2. Corbett, A. T., & Anderson, J. R. (1994). Knowledge tracing: Modeling the acquisition of procedural knowledge. *User Modeling and User-Adapted Interaction*, 4(4), 253–278.【要確認】
+3. Piech, C. et al. (2015). Deep Knowledge Tracing. In *Advances in Neural Information Processing Systems 28 (NeurIPS 2015)*, pp. 505–513.【要確認：著者の全員】
+4. Choi, Y. et al. (2020). Towards an Appropriate Query, Key, and Value Computation for Knowledge Tracing. In *Proceedings of the Seventh ACM Conference on Learning @ Scale (L@S '20)*. arXiv:2002.07033.【要確認：著者の全員・ページ】
+5. Shin, D., Shim, Y., Yu, H., Lee, S., Kim, B., & Choi, Y. (2020). SAINT+: Integrating Temporal Features for EdNet Correctness Prediction. arXiv:2010.12042.【要確認：論文として掲載された会議（LAK など）と年】
+6. （著者【要確認】）(2014). "Your click decides your fate": Leveraging clickstream patterns from MOOC videos to infer students' information processing & attrition behavior. arXiv:1407.7143.【要確認：著者・掲載先】
+7. （著者【要確認】）(2017). Sequence Modelling For Analysing Student Interaction with Educational Systems. arXiv:1708.04164.【要確認：著者・掲載先】
+8. （著者【要確認】）Modeling Student Behavior With Two-Layer Hidden Markov Models. *Journal of Educational Data Mining*（EDM 2017 の発表にもとづく）.【要確認：著者・巻号・年】
+9. Pardos, Z. A., & Heffernan, N. T. (2010). Modeling Individualization in a Bayesian Networks Implementation of Knowledge Tracing. In *User Modeling, Adaptation, and Personalization (UMAP 2010)*, LNCS, Springer, pp. 255–266.【要確認：ページ（225–266 とする資料もある）】
+10. Yudelson, M. V., Koedinger, K. R., & Gordon, G. J. (2013). Individualized Bayesian Knowledge Tracing Models. In *Artificial Intelligence in Education (AIED 2013)*, LNCS, Springer, pp. 171–180.【要確認】
+11. Sun (2025). Hierarchical Bayesian Knowledge Tracing in Undergraduate Engineering Education. arXiv:2506.00057.【要確認：著者の名前の全体・掲載先】
+12. Lee, Y., Shin, D., Loh, H., Lee, J., Chae, P., Cho, J., Park, S., Lee, J., Baek, J., Kim, B., & Choi, Y. (2020). Deep Attentive Study Session Dropout Prediction in Mobile Learning Environment. In *Proceedings of CSEDU 2020*. arXiv:2002.11624.【要確認：ページ】
+13. Käser, T., & Alexandron, G. (2024). Simulated Learners in Educational Technology: A Systematic Literature Review and a Turing-like Test. *International Journal of Artificial Intelligence in Education*, 34(2), 545–585. doi:10.1007/s40593-023-00337-2.【要確認】
 
 ---
 
