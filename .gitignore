@@ -23,3 +23,6 @@ __pycache__/
 *.py[cod]
 .venv*/
 .env
+
+# 先行研究の PDF（著作権があるため再配布しない）
+literature/*.pdf
