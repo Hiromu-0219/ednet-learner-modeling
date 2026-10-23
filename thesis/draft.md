@@ -42,7 +42,8 @@
 
 ## 第2章 関連研究（下書き）
 
-> この章の内容は、各文献の要旨と書誌情報（検索結果と論文の掲載ページ）だけにもとづく。本文はまだ読んでいない。そのため、各文献の説明には【要確認】を付けた。清書の前に原著を読み、説明が正しいかを確かめること。検索は数回だけで、網羅していない。【要記入：指導教員のすすめる文献を加える】
+> この章の内容は、ほとんどが各文献の要旨と書誌情報（検索結果と論文の掲載ページ）だけにもとづく。本文はまだ読んでいない。そのため、各文献の説明には【要確認】を付けた。清書の前に原著を読み、説明が正しいかを確かめること。検索は数回だけで、網羅していない。【要記入：指導教員のすすめる文献を加える】
+> 例外として、[12]・[14]・[15] は本文の PDF を読んで確かめた（2026-10-23）。PDF は `literature/` に置いてある（著作権があるため git には入れていない）。
 
 ### 2.1 大規模な学習ログのデータセット
 - Choi ら [1] は、TOEIC 学習アプリ Santa の行動ログを EdNet として公開した。
@@ -65,7 +66,11 @@
 - 1つのマルコフ連鎖で全員を表すのではなく、学習者を複数のマルコフ連鎖の混合として表す方法も提案されている［7］。【要確認：著者・掲載先】
 - 2層の隠れマルコフモデルで MOOC の行動のパターンを取り出し、その特徴が学習の成果と関係することを示した研究もある［8］。【要確認：著者】
 
-これらの研究は、学習者の違いを主にクラスタや混合（いくつかのグループへの分類）として扱っている。本研究は、学習者ごとの遷移の確率を全体の傾向に向けて縮める部分プーリングで個人差を表す。さらに、その個人差が将来の行動の予測に役立つかを、学習者ごとの時系列の前半/後半の分割で評価する点が異なる。
+EdNet では、問題と解説という2種類の教材の間の遷移を扱う研究がある。
+- Zhao ら [14] の TAMKOT は、LSTM の内部で、問題→問題、問題→解説、解説→問題、解説→解説の遷移ごとに別の重み行列を使う。EdNet の KT3 から無作為に抽出した1,000人で評価した。ただし、予測するのは次の問題の正誤だけで、行動の選択は予測しない（評価は学習者で層別した5分割交差検証、指標は AUC）。
+- Zhao と Sahebi [15] は TAMKOT を拡張し、次の問題の正誤と、次に問題と解説のどちらを選ぶかを同時に予測した（EDM 2024 のポスター）。データは [14] と同じ1,000人である。次の教材の種類の予測では AUC 0.8987 を報告した。予測は問題か解説かの二値で、指標は AUC だけである。
+
+これらの研究は、学習者の違いを主にクラスタや混合（いくつかのグループへの分類）として扱うか、ニューラルネットワークの隠れ状態の中で暗に扱っている。[15] は本研究に最も近いが、本研究は次の点が異なる。(1) 予測対象が講義・補助操作・終了を含む5クラスである。(2) 確率の質を Log Loss と ECE で評価する。(3) 個人差を、解釈できる遷移の確率として明示的に表す。本研究は、学習者ごとの遷移の確率を全体の傾向に向けて縮める部分プーリングで個人差を表す。さらに、その個人差が将来の行動の予測に役立つかを、学習者ごとの時系列の前半/後半の分割で評価する点が異なる。
 
 ### 2.4 個人差の推定と部分プーリング
 知識追跡では、学習者ごとの違いをモデルに入れる研究が行われてきた。
@@ -76,9 +81,15 @@
 本研究の階層マルコフモデル（M3）は、この部分プーリングの考え方を、正誤ではなく行動の遷移に当てはめたものと位置づけられる。本研究の適応曲線では、最初の数百行動だけで個人差を当てはめると予測が悪化した（5.6節）。未知の学習者でも改善を報告した Yudelson ら [10] との違いは、考察で論じる。【要記入：本文を読んだうえで比較を書く】
 
 ### 2.5 学習セッションと離脱
-- Lee ら [12] は、同じ Santa のデータで、学習セッションの離脱（セッションの途中でやめること）を Transformer にもとづくモデル DAS で予測した。【要確認】
-  - 検索結果の要約では、この研究は1時間以上の空きでセッションを区切ったとされている。論文の掲載ページでは、区切り方の記述を確かめられなかった。【要確認：本文で区切り方を確かめる。確かめられれば、本研究の60分の区切りの根拠として引用する】
-- 本研究の「終了」の予測は、セッションの離脱の予測と近い。ただし本研究は、離脱だけを予測するのではなく、ほかの行動と同じ枠組みで扱い、生成した系列のセッションの長さの再現にも使う点が異なる。
+- Lee ら [12] は、Santa の解答のログで、学習セッションの離脱（セッションをやめること）を Transformer にもとづくモデル DAS で予測した。
+  - データは「Santa dataset」と呼ばれ、出典として EdNet の arXiv 版を挙げている。2016〜2019年の解答の記録で、216,575人・13,840,169件の解答を含む。入力は問題と解答の記録だけで、解説や講義の行動は使っていない。【要確認：序論では「21K users、13M responses」と書かれていて、5章の人数と合わない】
+  - 前の行動との間隔が1時間以上空いたら、新しいセッションとした。根拠は2つある。1つは、さまざまな分野の行動ログで、1時間の無操作が利用者の行動をよく分けるとした Halfaker ら [16] である。もう1つは、連続する行動の時間間隔の分布（対数軸）である。この分布は、約30秒に頂点がある大きな山と、約1日に頂点がある小さな山に分かれ、1時間はその間にあった。著者らは、区切りの基準はシステムに合わせて選んでよいとも書いている。
+  - 各セッションの最後の解答を「離脱」とした。772,235セッションで、1セッションあたり平均17.92問・26.00分、離脱の解答は全体の 5.58% だった。
+  - 評価は学習者単位の 7:1:2 の分割で、指標は AUC である。DAS（入力の長さ5）は AUC 0.7661 で、LSTM と GRU（0.6830）を上回った。
+- 本研究の60分の区切りは、[12] と同じ値である。本研究でも監査サンプルで間隔の分布を確かめ、60〜120分の区間に間隔が少ないことを確認した（3.4節）。
+- 本研究の「終了」の予測は、セッションの離脱の予測と近い。セッションの最後の行動の次を終了とする定義も [12] と同じである。ただし本研究は、次の点が異なる。
+  - [12] は解答ごとに離脱かどうかを二値で予測する。本研究は、解説・講義・補助操作を含むすべての行動の後で、終了をほかの行動と同じ5クラスの1つとして予測する。
+  - 本研究は、終了の予測を、生成した系列のセッションの長さの再現にも使う。
 
 ### 2.6 学習者シミュレーション
 - 教育の分野では、シミュレーションした学習者（simulated learners）が、教師の訓練、学習についての仮説の検討、適応的な学習のアルゴリズムの開発、学習環境の試験などに使われてきた。
@@ -89,7 +100,7 @@
 
 ### 2.7 本研究の位置づけ
 以上をふまえ、本研究の位置づけを次のようにまとめる。【要記入：文献を読んだうえで調整する】
-1. 知識追跡（2.2）が正誤を予測するのに対し、本研究は行動の選択を予測する。
+1. 知識追跡（2.2）が正誤を予測するのに対し、本研究は行動の選択を予測する。行動の選択を予測した [15] は問題か解説かの二値だが、本研究は終了を含む5クラスを扱う。
 2. 行動の系列の研究（2.3）が個人差をクラスタや混合で扱うのに対し、本研究は部分プーリング（2.4）で表す。そのうえで、将来の予測と未知の学習者への適応で評価する。
 3. 画面の流れで決まる遷移を除いた「決定点」で評価し、手順を事前に固定する。
 4. 学習者シミュレーションの妥当性の問題（2.6）に対し、生成した系列を実データと比べ、再現できた点とできなかった点を示す。
@@ -324,19 +335,22 @@
 ## 参考文献
 > 書誌情報は、検索結果と論文の掲載ページで確かめた範囲で書いた。著者の全員・ページ・掲載先がはっきりしないものには【要確認】を付けた。清書の前に、すべて原著（出版社の記録）で確かめること。書式は【要記入：学科の指定に合わせる】。
 
-1. Choi, Y. et al. (2020). EdNet: A Large-Scale Hierarchical Dataset in Education. In *Artificial Intelligence in Education (AIED 2020)*, LNCS, Springer, pp. 69–73. arXiv:1912.03072.【要確認：著者の全員（10人）】
+1. Choi, Y., Lee, Y., Shin, D., Cho, J., Park, S., Lee, S., Baek, J., Bae, C., Kim, B., & Heo, J. (2020). EdNet: A Large-Scale Hierarchical Dataset in Education. In *Artificial Intelligence in Education (AIED 2020)*, LNCS 12164, Springer, pp. 69–73. doi:10.1007/978-3-030-52240-7_13. arXiv:1912.03072.【要確認：著者は [14]・[15] の参考文献の記載、DOI は検索結果による。原著では未確認。arXiv 版の著者の並びは AIED 版と違う（[12] の参考文献では最後が Jang, Y.）】
 2. Corbett, A. T., & Anderson, J. R. (1994). Knowledge tracing: Modeling the acquisition of procedural knowledge. *User Modeling and User-Adapted Interaction*, 4(4), 253–278.【要確認】
 3. Piech, C. et al. (2015). Deep Knowledge Tracing. In *Advances in Neural Information Processing Systems 28 (NeurIPS 2015)*, pp. 505–513.【要確認：著者の全員】
-4. Choi, Y. et al. (2020). Towards an Appropriate Query, Key, and Value Computation for Knowledge Tracing. In *Proceedings of the Seventh ACM Conference on Learning @ Scale (L@S '20)*. arXiv:2002.07033.【要確認：著者の全員・ページ】
-5. Shin, D., Shim, Y., Yu, H., Lee, S., Kim, B., & Choi, Y. (2020). SAINT+: Integrating Temporal Features for EdNet Correctness Prediction. arXiv:2010.12042.【要確認：論文として掲載された会議（LAK など）と年】
+4. Choi, Y., Lee, Y., Cho, J., Baek, J., Kim, B., Cha, Y., Shin, D., Bae, C., & Heo, J. (2020). Towards an Appropriate Query, Key, and Value Computation for Knowledge Tracing. In *Proceedings of the Seventh ACM Conference on Learning @ Scale (L@S '20)*, pp. 341–344. doi:10.1145/3386527.3405945. arXiv:2002.07033.【要確認：著者とページは [14]・[15] の参考文献の記載、DOI は arXiv 版の本文による。原著では未確認】
+5. Shin, D., Shim, Y., Yu, H., Lee, S., Kim, B., & Choi, Y. (2021). SAINT+: Integrating Temporal Features for EdNet Correctness Prediction. In *LAK21: 11th International Learning Analytics and Knowledge Conference*, ACM. arXiv:2010.12042.【要確認：掲載先は arXiv 版の ACM の著作権表示による。ページと DOI は未確認】
 6. （著者【要確認】）(2014). "Your click decides your fate": Leveraging clickstream patterns from MOOC videos to infer students' information processing & attrition behavior. arXiv:1407.7143.【要確認：著者・掲載先】
 7. （著者【要確認】）(2017). Sequence Modelling For Analysing Student Interaction with Educational Systems. arXiv:1708.04164.【要確認：著者・掲載先】
 8. （著者【要確認】）Modeling Student Behavior With Two-Layer Hidden Markov Models. *Journal of Educational Data Mining*（EDM 2017 の発表にもとづく）.【要確認：著者・巻号・年】
 9. Pardos, Z. A., & Heffernan, N. T. (2010). Modeling Individualization in a Bayesian Networks Implementation of Knowledge Tracing. In *User Modeling, Adaptation, and Personalization (UMAP 2010)*, LNCS, Springer, pp. 255–266.【要確認：ページ（225–266 とする資料もある）】
 10. Yudelson, M. V., Koedinger, K. R., & Gordon, G. J. (2013). Individualized Bayesian Knowledge Tracing Models. In *Artificial Intelligence in Education (AIED 2013)*, LNCS, Springer, pp. 171–180.【要確認】
 11. Sun (2025). Hierarchical Bayesian Knowledge Tracing in Undergraduate Engineering Education. arXiv:2506.00057.【要確認：著者の名前の全体・掲載先】
-12. Lee, Y., Shin, D., Loh, H., Lee, J., Chae, P., Cho, J., Park, S., Lee, J., Baek, J., Kim, B., & Choi, Y. (2020). Deep Attentive Study Session Dropout Prediction in Mobile Learning Environment. In *Proceedings of CSEDU 2020*. arXiv:2002.11624.【要確認：ページ】
+12. Lee, Y., Shin, D., Loh, H., Lee, J., Chae, P., Cho, J., Park, S., Lee, J., Baek, J., Kim, B., & Choi, Y. (2020). Deep Attentive Study Session Dropout Prediction in Mobile Learning Environment. In *Proceedings of the 12th International Conference on Computer Supported Education (CSEDU 2020)*, Vol. 1, SCITEPRESS, pp. 26–35. doi:10.5220/0009347700260035.（出版社の PDF で確認）
 13. Käser, T., & Alexandron, G. (2024). Simulated Learners in Educational Technology: A Systematic Literature Review and a Turing-like Test. *International Journal of Artificial Intelligence in Education*, 34(2), 545–585. doi:10.1007/s40593-023-00337-2.【要確認】
+14. Zhao, S., Wang, C., & Sahebi, S. (2022). Transition-Aware Multi-Activity Knowledge Tracing. In *2022 IEEE International Conference on Big Data (Big Data)*, IEEE, pp. 1760–1769. arXiv:2301.12916.【要確認：DOI。ページは [15] の参考文献の記載による。読んだのは arXiv 版】
+15. Zhao, S., & Sahebi, S. (2024). Exploring Simultaneous Knowledge and Behavior Tracing. In B. Paaßen & C. D. Epp (Eds.), *Proceedings of the 17th International Conference on Educational Data Mining (EDM 2024)*, pp. 927–932. doi:10.5281/zenodo.12730001.（ポスター。論文の PDF で確認）
+16. Halfaker, A., Keyes, O., Kluver, D., Thebault-Spieker, J., Nguyen, T., Shores, K., Uduwage, A., & Warncke-Wang, M. (2015). User Session Identification Based on Strong Regularities in Inter-activity Time. In *Proceedings of the 24th International Conference on World Wide Web (WWW '15)*, pp. 410–418.【要確認：[12] の参考文献から書き写した。原著は未読】
 
 ---
 
